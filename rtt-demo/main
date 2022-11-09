@@ -1,0 +1,60 @@
+/*
+ * Copyright (c) 2006-2022, RT-Thread Development Team
+ *
+ * SPDX-License-Identifier: Apache-2.0
+ *
+ * Change Logs:
+ * Date           Author       Notes
+ * 2022-09-11     RT-Thread    first version
+ */
+
+#include <rtthread.h>
+
+#define DBG_TAG "main"
+#define DBG_LVL DBG_LOG
+#include <rtdbg.h>
+
+rt_thread_t th1_ptr = NULL;
+struct rt_thread th2;
+rt_uint8_t th2_stack[512] = {0};
+
+void th1_entry(void * parameter){
+    int i=0;
+        for(i=0;i<5;i++){
+            rt_kprintf("th1_entry running...\n");
+            rt_thread_mdelay(1000);
+        }
+}
+void th2_entry(void * parameter){
+    int i=0;
+    for(i=0;i<5;i++){
+        rt_kprintf("th2_entry running...\n");
+        rt_thread_mdelay(1000);
+    }
+}
+void scheduler_sethook(struct rt_thread *from, struct rt_thread *to){
+    rt_kprintf("from:%s --> to:%s\n",from->name,to->name);
+}
+
+int main(void)
+{
+    int ret = 0;
+
+    rt_scheduler_sethook(scheduler_sethook);//閽╁瓙鍑芥暟
+
+    th1_ptr = rt_thread_create("th1_demo", th1_entry, NULL, 1024,20, 5);
+    if(th1_ptr == RT_NULL){
+        LOG_E("rt_thread_create failed...\n");
+        return -RT_ENOMEM;
+    }
+    else LOG_D("rt_thread_create successed...\n");
+    rt_thread_startup(th1_ptr);
+
+    ret = rt_thread_init(&th2, "th1_demo", th2_entry, NULL, th2_stack, sizeof(th2_stack), 19, 5);
+    if(ret<0){ //澶辫触杩斿洖閿欒鐮?0
+        LOG_E("rt_thread_init failed...\n");
+        return ret;
+    }
+    else LOG_D("rt_thread_init successed...\n");
+    rt_thread_startup(&th2);
+}
